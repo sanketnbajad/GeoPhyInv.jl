@@ -12,6 +12,9 @@ function lossvalue(loss, dataobs::VNamedD, data::VNamedD)
   	end
 end
 
+function lossvalue(loss, convdata::NamedD{T}, data::NamedD{T}) where T
+	return loss(convdata.d,data.d)
+end
 
 function gradient!(buffer, loss, dataobs::NamedD{T}, data::NamedD{T}) where T
 	map(buffer.d, dataobs.d, data.d) do g, d1, d2 # loop over fields
@@ -23,5 +26,10 @@ function gradient!(buffer, loss, dataobs::VNamedD, data::VNamedD)
 	map(buffer, dataobs, data) do g, d1, d2 # loop over supersources
 		gradient!(g, loss, d1, d2)
   	end
+end
+
+function gradient!(buffer, loss,conv,S,dataobs::NamedD{T}, data::NamedD{T}) where T
+    buffer.d=Zygote.gradient(x->loss(conv(x,S),dataobs.d),data.d)
+	return buffer
 end
 
