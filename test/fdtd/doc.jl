@@ -4,7 +4,8 @@ using BenchmarkTools
 using GeoPhyInv
 using Test
 
-# # Intro
+
+# ## Methods
 
 #md # ```@docs
 #md # SeisForwExpt 
@@ -12,7 +13,6 @@ using Test
 #md # ```
 
 
-# # Methods
 #md # ```@docs
 #md # update!(::GeoPhyInv.PFdtd)
 #md # update!(::GeoPhyInv.PFdtd, ::Medium)

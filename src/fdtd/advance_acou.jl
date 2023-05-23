@@ -1,37 +1,66 @@
-function advance!(pac::T, pap) where {T<:P_common{FdtdAcoustic}}
-    for ipw in pac.activepw
-        # store p for the last two steps
-        # pppppp!(pap[ipw],pac.attrib_mod)
-        advance_kernel!(pap[ipw], pac)
-    end
-    return nothing
-end
+#=
+Before calling these functions
+    p and its derivatives are at [it-1]
+    velocities are at [it-3/2]
 
-function advance_kernel!(pap, pac::T) where {T<:P_common{FdtdAcoustic,2}}
+After calling
+    velocities and its derivatives with jump to [it-1/2]
+    Only p will jump to [it]
+=#
 
+function update_dstress!(pap, pac::T) where {T<:P_common{<:FdtdAcoustic,2}}
     w1t = pap.w1[:t]
     mw = pap.memory_pml
     pml = pac.pml
+    pml_faces = pac.pml_faces
 
     #compute dpdx and dpdz at [it-1] for all propagating fields
     @parallel compute_dp!(w1t[:p], w1t[:dpdx], w1t[:dpdz], pac.fc[:dzI], pac.fc[:dxI])
-    memoryx!(mw[:dpdx], w1t[:dpdx], pml[:dpdx][:a], pml[:dpdx][:b], pml[:dpdx][:kI])
-    memoryz!(mw[:dpdz], w1t[:dpdz], pml[:dpdz][:a], pml[:dpdz][:b], pml[:dpdz][:kI])
+    memoryx!(
+        mw[:dpdx],
+        w1t[:dpdx],
+        pml[:dpdx][:a],
+        pml[:dpdx][:b],
+        pml[:dpdx][:kI],
+        pml_faces,
+    )
+    memoryz!(
+        mw[:dpdz],
+        w1t[:dpdz],
+        pml[:dpdz][:a],
+        pml[:dpdz][:b],
+        pml[:dpdz][:kI],
+        pml_faces,
+    )
+end
+function update_v!(pap, pac::T) where {T<:P_common{<:FdtdAcoustic,2}}
+    w1t = pap.w1[:t]
 
     #update velocity at [it-1/2] using 
     #velocity at [it-3/2] and dpdx and dpdz at [it-1] 
     @parallel compute_v!(
         w1t[:vx],
         w1t[:vz],
-        pac.mod[:rhoI],
+        pac.dmod[:dtinvavxirho], pac.dmod[:dtinvavzirho],
         w1t[:dpdx],
         w1t[:dpdz],
-        pac.fc[:dt],
     )#
 
     #rigid boundary conditions 
-    @parallel (1:pac.ic[:nz]) dirichletx!(w1t[:vx], w1t[:vz], pac.ic[:nx])
-    @parallel (1:pac.ic[:nx]) dirichletz!(w1t[:vz], w1t[:vx], pac.ic[:nz])
+    (:xmin ∈ pac.rigid_faces) &&
+        @parallel (1:pac.ic[:nz]) dirichletxmin!(w1t[:vx], w1t[:vz], pac.ic[:nx])
+    (:xmax ∈ pac.rigid_faces) &&
+        @parallel (1:pac.ic[:nz]) dirichletxmax!(w1t[:vx], w1t[:vz], pac.ic[:nx])
+    (:zmin ∈ pac.rigid_faces) &&
+        @parallel (1:pac.ic[:nx]) dirichletzmin!(w1t[:vz], w1t[:vx], pac.ic[:nz])
+    (:zmax ∈ pac.rigid_faces) &&
+        @parallel (1:pac.ic[:nx]) dirichletzmax!(w1t[:vz], w1t[:vx], pac.ic[:nz])
+end
+function update_dv!(pap, pac::T) where {T<:P_common{<:FdtdAcoustic,2}}
+    w1t = pap.w1[:t]
+    mw = pap.memory_pml
+    pml = pac.pml
+    pml_faces = pac.pml_faces
 
     @parallel compute_dv!(
         w1t[:vx],
@@ -41,20 +70,36 @@ function advance_kernel!(pap, pac::T) where {T<:P_common{FdtdAcoustic,2}}
         pac.fc[:dxI],
         pac.fc[:dzI],
     )#
-    memoryx!(mw[:dvxdx], w1t[:dvxdx], pml[:dvxdx][:a], pml[:dvxdx][:b], pml[:dvxdx][:kI])
-    memoryz!(mw[:dvzdz], w1t[:dvzdz], pml[:dvzdz][:a], pml[:dvzdz][:b], pml[:dvzdz][:kI])
+    memoryx!(
+        mw[:dvxdx],
+        w1t[:dvxdx],
+        pml[:dvxdx][:a],
+        pml[:dvxdx][:b],
+        pml[:dvxdx][:kI],
+        pml_faces,
+    )
+    memoryz!(
+        mw[:dvzdz],
+        w1t[:dvzdz],
+        pml[:dvzdz][:a],
+        pml[:dvzdz][:b],
+        pml[:dvzdz][:kI],
+        pml_faces,
+    )
+end
+function update_stress!(pap, pac::T) where {T<:P_common{<:FdtdAcoustic,2}}
+    w1t = pap.w1[:t]
 
     #compute pressure at [it] using p at [it-1] and dvxdx
     #and dvzdz at [it-1/2]
-    @parallel compute_p!(w1t[:p], w1t[:dvxdx], w1t[:dvzdz], pac.mod[:K], pac.fc[:dt])
-
+    @parallel compute_p!(w1t[:p], w1t[:dvxdx], w1t[:dvzdz], pac.dmod[:dtK])
 end
 
-function advance_kernel!(pap, pac::T) where {T<:P_common{FdtdAcoustic,3}}
-
+function update_dstress!(pap, pac::T) where {T<:P_common{<:FdtdAcoustic,3}}
     w1t = pap.w1[:t]
     mw = pap.memory_pml
     pml = pac.pml
+    pml_faces = pac.pml_faces
 
     #compute dpdx and dpdz at [it-1] for all propagating fields
     @parallel compute_dp!(
@@ -66,9 +111,33 @@ function advance_kernel!(pap, pac::T) where {T<:P_common{FdtdAcoustic,3}}
         pac.fc[:dyI],
         pac.fc[:dxI],
     )
-    memoryx!(mw[:dpdx], w1t[:dpdx], pml[:dpdx][:a], pml[:dpdx][:b], pml[:dpdx][:kI])
-    memoryy!(mw[:dpdy], w1t[:dpdy], pml[:dpdy][:a], pml[:dpdy][:b], pml[:dpdy][:kI])
-    memoryz!(mw[:dpdz], w1t[:dpdz], pml[:dpdz][:a], pml[:dpdz][:b], pml[:dpdz][:kI])
+    memoryx!(
+        mw[:dpdx],
+        w1t[:dpdx],
+        pml[:dpdx][:a],
+        pml[:dpdx][:b],
+        pml[:dpdx][:kI],
+        pml_faces,
+    )
+    memoryy!(
+        mw[:dpdy],
+        w1t[:dpdy],
+        pml[:dpdy][:a],
+        pml[:dpdy][:b],
+        pml[:dpdy][:kI],
+        pml_faces,
+    )
+    memoryz!(
+        mw[:dpdz],
+        w1t[:dpdz],
+        pml[:dpdz][:a],
+        pml[:dpdz][:b],
+        pml[:dpdz][:kI],
+        pml_faces,
+    )
+end
+function update_v!(pap, pac::T) where {T<:P_common{<:FdtdAcoustic,3}}
+    w1t = pap.w1[:t]
 
     #update velocity at [it-1/2] using 
     #velocity at [it-3/2] and dpdx and dpdz at [it-1] 
@@ -76,33 +145,59 @@ function advance_kernel!(pap, pac::T) where {T<:P_common{FdtdAcoustic,3}}
         w1t[:vx],
         w1t[:vy],
         w1t[:vz],
-        pac.mod[:rhoI],
+        pac.dmod[:dtinvavxirho], pac.dmod[:dtinvavyirho], pac.dmod[:dtinvavzirho],
         w1t[:dpdx],
         w1t[:dpdy],
         w1t[:dpdz],
-        pac.fc[:dt],
     )#
 
     #rigid boundary conditions 
-    @parallel (1:pac.ic[:nz], 1:pac.ic[:ny]) dirichletx!(
+    (:xmin ∈ pac.rigid_faces) && @parallel (1:pac.ic[:nz], 1:pac.ic[:ny]) dirichletxmin!(
         w1t[:vx],
         w1t[:vz],
         w1t[:vy],
         pac.ic[:nx],
     )
-    @parallel (1:pac.ic[:nz], 1:pac.ic[:nx]) dirichlety!(
+    (:xmax ∈ pac.rigid_faces) && @parallel (1:pac.ic[:nz], 1:pac.ic[:ny]) dirichletxmax!(
+        w1t[:vx],
+        w1t[:vz],
+        w1t[:vy],
+        pac.ic[:nx],
+    )
+    (:ymin ∈ pac.rigid_faces) && @parallel (1:pac.ic[:nz], 1:pac.ic[:nx]) dirichletymin!(
         w1t[:vy],
         w1t[:vz],
         w1t[:vx],
         pac.ic[:ny],
     )
-    @parallel (1:pac.ic[:ny], 1:pac.ic[:nx]) dirichletz!(
+    (:ymax ∈ pac.rigid_faces) && @parallel (1:pac.ic[:nz], 1:pac.ic[:nx]) dirichletymax!(
+        w1t[:vy],
+        w1t[:vz],
+        w1t[:vx],
+        pac.ic[:ny],
+    )
+
+    (:zmin ∈ pac.rigid_faces) && @parallel (1:pac.ic[:ny], 1:pac.ic[:nx]) dirichletzmin!(
         w1t[:vz],
         w1t[:vy],
         w1t[:vx],
         pac.ic[:nz],
     )
 
+    (:zmax ∈ pac.rigid_faces) && @parallel (1:pac.ic[:ny], 1:pac.ic[:nx]) dirichletzmax!(
+        w1t[:vz],
+        w1t[:vy],
+        w1t[:vx],
+        pac.ic[:nz],
+    )
+
+end
+
+function update_dv!(pap, pac::T) where {T<:P_common{<:FdtdAcoustic,3}}
+    w1t = pap.w1[:t]
+    mw = pap.memory_pml
+    pml = pac.pml
+    pml_faces = pac.pml_faces
     @parallel compute_dv!(
         w1t[:vx],
         w1t[:vy],
@@ -114,9 +209,33 @@ function advance_kernel!(pap, pac::T) where {T<:P_common{FdtdAcoustic,3}}
         pac.fc[:dyI],
         pac.fc[:dzI],
     )#
-    memoryx!(mw[:dvxdx], w1t[:dvxdx], pml[:dvxdx][:a], pml[:dvxdx][:b], pml[:dvxdx][:kI])
-    memoryy!(mw[:dvydy], w1t[:dvydy], pml[:dvydy][:a], pml[:dvydy][:b], pml[:dvydy][:kI])
-    memoryz!(mw[:dvzdz], w1t[:dvzdz], pml[:dvzdz][:a], pml[:dvzdz][:b], pml[:dvzdz][:kI])
+    memoryx!(
+        mw[:dvxdx],
+        w1t[:dvxdx],
+        pml[:dvxdx][:a],
+        pml[:dvxdx][:b],
+        pml[:dvxdx][:kI],
+        pml_faces,
+    )
+    memoryy!(
+        mw[:dvydy],
+        w1t[:dvydy],
+        pml[:dvydy][:a],
+        pml[:dvydy][:b],
+        pml[:dvydy][:kI],
+        pml_faces,
+    )
+    memoryz!(
+        mw[:dvzdz],
+        w1t[:dvzdz],
+        pml[:dvzdz][:a],
+        pml[:dvzdz][:b],
+        pml[:dvzdz][:kI],
+        pml_faces,
+    )
+end
+function update_stress!(pap, pac::T) where {T<:P_common{<:FdtdAcoustic,3}}
+    w1t = pap.w1[:t]
 
     #compute pressure at [it] using p at [it-1] and dvxdx
     #and dvzdz at [it-1/2]
@@ -125,25 +244,10 @@ function advance_kernel!(pap, pac::T) where {T<:P_common{FdtdAcoustic,3}}
         w1t[:dvxdx],
         w1t[:dvydy],
         w1t[:dvzdz],
-        pac.mod[:K],
-        pac.fc[:dt],
+        pac.dmod[:dtK],
     )
 
 end
-
-"""
-Exchange pointers (i.e., set names of NamedArray) instead of copying arrays around
-"""
-function pppppp!(pap, attrib_mod)
-    w2 = pap.w1
-    names_old = names(w2)[1]
-    names_new = vcat(circshift(names_old[1:3], -1), names_old[4:end])
-    setnames!(w2, names_new, 1)
-    # (old method), use for debugging
-    #copyto!.(w2[:tpp],w2[:tp])
-    #copyto!.(w2[:tp],w2[:t])
-end
-
 
 # these relative indices of the arrays point to same location
 # [ix,iy,iz]     --> pressure
@@ -166,16 +270,16 @@ end
 end
 
 
-@parallel function compute_v!(vx, vz, rhoI, dpdx, dpdz, dt)#
-    @inn(vx) = @inn(vx) + dt * @av_xi(rhoI) * @all(dpdx)
-    @inn(vz) = @inn(vz) + dt * @av_zi(rhoI) * @all(dpdz)
+@parallel function compute_v!(vx, vz, dtinvavxirho, dtinvavzirho, dpdx, dpdz)#
+    @inn(vx) = @inn(vx) + @all(dtinvavxirho) * @all(dpdx)
+    @inn(vz) = @inn(vz) + @all(dtinvavzirho) * @all(dpdz)
     return
 end
 
-@parallel function compute_v!(vx, vy, vz, rhoI, dpdx, dpdy, dpdz, dt)#
-    @inn(vx) = @inn(vx) + dt * @av_xi(rhoI) * @all(dpdx)
-    @inn(vy) = @inn(vy) + dt * @av_yi(rhoI) * @all(dpdy)
-    @inn(vz) = @inn(vz) + dt * @av_zi(rhoI) * @all(dpdz)
+@parallel function compute_v!(vx, vy, vz, dtinvavxirho, dtinvavyirho, dtinvavzirho, dpdx, dpdy, dpdz)#
+    @inn(vx) = @inn(vx) + @all(dtinvavxirho) * @all(dpdx)
+    @inn(vy) = @inn(vy) + @all(dtinvavyirho) * @all(dpdy)
+    @inn(vz) = @inn(vz) + @all(dtinvavzirho) * @all(dpdz)
     return
 end
 
@@ -196,15 +300,15 @@ end
 
 
 # no attenuation (no memory in stress-strain relation)
-@parallel function compute_p!(p, dvxdx, dvzdz, K, dt)
-    @all(p) = @all(p) + @all(K) * (@all(dvxdx) + @all(dvzdz)) * dt
+@parallel function compute_p!(p, dvxdx, dvzdz, dtK)
+    @all(p) = @all(p) + (@all(dvxdx) + @all(dvzdz)) * @all(dtK)
     return
 end
 
 
 # no attenuation (no memory in stress-strain relation)
-@parallel function compute_p!(p, dvxdx, dvydy, dvzdz, K, dt)
-    @all(p) = @all(p) + @all(K) * (@all(dvxdx) + @all(dvzdz) + @all(dvydy)) * dt
+@parallel function compute_p!(p, dvxdx, dvydy, dvzdz, dtK)
+    @all(p) = @all(p) + (@all(dvxdx) + @all(dvzdz) + @all(dvydy)) * @all(dtK)
     return
 end
 
@@ -212,7 +316,7 @@ end
 
 
 # # 
-#  function compute_p!(pap,pac,::T) where {T<:Union{FdtdAcousticVisco}}
+#  function compute_stress!(pap,pac,::T) where {T<:Union{FdtdAcousticVisco}}
 # 	dvxdx=pap.w1[:dx][:vx]
 # 	dvzdz=pap.w1[:dz][:vz]
 # 	p=pap.w1[:t][:p]

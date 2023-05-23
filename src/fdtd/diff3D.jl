@@ -2,17 +2,17 @@
 
 import ..ParallelStencil: INDICES, WITHIN_DOC
 iz, iy, ix = INDICES[1], INDICES[2], INDICES[3]
-@static if (_fd.order == 2)
+@static if (_fd_order == 2)
     izi, iyi, ixi = :($iz + 1), :($iy + 1), :($ix + 1)
-elseif (_fd.order == 4)
+elseif (_fd_order == 4)
     izi, iyi, ixi = :($iz + 3), :($iy + 3), :($ix + 3)
-elseif (_fd.order == 6)
+elseif (_fd_order == 6)
     izi, iyi, ixi = :($iz + 5), :($iy + 5), :($ix + 5)
-elseif (_fd.order == 8)
+elseif (_fd_order == 8)
     izi, iyi, ixi = :($iz + 7), :($iy + 7), :($ix + 7)
 end
 
-@static if (_fd.order == 2)
+@static if (_fd_order == 2)
 
     macro within(macroname::String, A::Symbol)
         if macroname == "@all"
@@ -50,7 +50,7 @@ end
     macro d_xi(A::Symbol)
         esc(:($A[$izi, $iyi, $ix+1] - $A[$izi, $iyi, $ix]))
     end
-elseif (_fd.order == 4)
+elseif (_fd_order == 4)
 
     macro within(macroname::String, A::Symbol)
         if macroname == "@all"
@@ -118,7 +118,7 @@ elseif (_fd.order == 4)
             ),
         )
     end
-elseif (_fd.order == 6)
+elseif (_fd_order == 6)
     macro within(macroname::String, A::Symbol)
         if macroname == "@all"
             esc(:($iz <= size($A, 1) && $ix <= size($A, 2)))
@@ -140,58 +140,58 @@ elseif (_fd.order == 6)
     macro d_za(A::Symbol)
         esc(
             :(
-                $A[$iz+3,  $iy,  $ix] * 2250.0 - $A[$iz+2,  $iy,  $ix] * 2250.0 +
-                $A[$iz+1,  $iy,  $ix] * 125.0 - $A[$iz+4,  $iy,  $ix] * 125.0 +
-                $A[$iz+5,  $iy,  $ix] * 9.0 - $A[$iz,  $iy,  $ix] * 9.0
+                $A[$iz+3, $iy, $ix] * 2250.0 - $A[$iz+2, $iy, $ix] * 2250.0 +
+                $A[$iz+1, $iy, $ix] * 125.0 - $A[$iz+4, $iy, $ix] * 125.0 +
+                $A[$iz+5, $iy, $ix] * 9.0 - $A[$iz, $iy, $ix] * 9.0
             ),
         )
     end
     macro d_ya(A::Symbol)
         esc(
             :(
-                $A[$iz,  $iy+3,  $ix] * 2250.0 - $A[$iz,  $iy+2,  $ix] * 2250.0 +
-                $A[$iz,  $iy+1,  $ix] * 125.0 - $A[$iz,  $iy+4,  $ix] * 125.0 +
-                $A[$iz,  $iy+5,  $ix] * 9.0 - $A[$iz,  $iy,  $ix] * 9.0
+                $A[$iz, $iy+3, $ix] * 2250.0 - $A[$iz, $iy+2, $ix] * 2250.0 +
+                $A[$iz, $iy+1, $ix] * 125.0 - $A[$iz, $iy+4, $ix] * 125.0 +
+                $A[$iz, $iy+5, $ix] * 9.0 - $A[$iz, $iy, $ix] * 9.0
             ),
         )
     end
     macro d_xa(A::Symbol)
         esc(
             :(
-                $A[$iz,  $iy,  $ix+3] * 2250.0 - $A[$iz,  $iy,  $ix+2] * 2250.0 +
-                $A[$iz,  $iy,  $ix+1] * 125.0 - $A[$iz,  $iy,  $ix+4] * 125.0 +
-                $A[$iz,  $iy,  $ix+5] * 9.0 - $A[$iz,  $iy,  $ix] * 9.0
+                $A[$iz, $iy, $ix+3] * 2250.0 - $A[$iz, $iy, $ix+2] * 2250.0 +
+                $A[$iz, $iy, $ix+1] * 125.0 - $A[$iz, $iy, $ix+4] * 125.0 +
+                $A[$iz, $iy, $ix+5] * 9.0 - $A[$iz, $iy, $ix] * 9.0
             ),
         )
     end
     macro d_zi(A::Symbol)
         esc(
             :(
-                $A[$iz+3,  $iyi,  $ixi] * 2250.0 - $A[$iz+2,  $iyi,  $ixi] * 2250.0 +
-                $A[$iz+1,  $iyi,  $ixi] * 125.0 - $A[$iz+4,  $iyi,  $ixi] * 125.0 +
-                $A[$iz+5,  $iyi,  $ixi] * 9.0 - $A[$iz,  $iyi,  $ixi] * 9.0
+                $A[$iz+3, $iyi, $ixi] * 2250.0 - $A[$iz+2, $iyi, $ixi] * 2250.0 +
+                $A[$iz+1, $iyi, $ixi] * 125.0 - $A[$iz+4, $iyi, $ixi] * 125.0 +
+                $A[$iz+5, $iyi, $ixi] * 9.0 - $A[$iz, $iyi, $ixi] * 9.0
             ),
         )
     end
     macro d_yi(A::Symbol)
         esc(
             :(
-                $A[$izi,  $iy+3,  $ixi] * 2250.0 - $A[$izi,  $iy+2,  $ixi] * 2250.0 +
-                $A[$izi,  $iy+1,  $ixi] * 125.0 - $A[$izi,  $iy+4,  $ixi] * 125.0 +
-                $A[$izi,  $iy+5,  $ixi] * 9.0 - $A[$izi,  $iy,  $ixi] * 9.0
+                $A[$izi, $iy+3, $ixi] * 2250.0 - $A[$izi, $iy+2, $ixi] * 2250.0 +
+                $A[$izi, $iy+1, $ixi] * 125.0 - $A[$izi, $iy+4, $ixi] * 125.0 +
+                $A[$izi, $iy+5, $ixi] * 9.0 - $A[$izi, $iy, $ixi] * 9.0
             ),
         )
     end
     macro d_xi(A::Symbol)
         esc(
             :(
-                $A[$izi,  $iyi,  $ix+3] * 2250.0 - $A[$izi,  $iyi,  $ix+2] * 2250.0 +
-                $A[$izi,  $iyi,  $ix+1] * 125.0 - $A[$izi,  $iyi,  $ix+4] * 125.0 +
-                $A[$izi,  $iyi,  $ix+5] * 9.0 - $A[$izi,  $iyi,  $ix] * 9.0
+                $A[$izi, $iyi, $ix+3] * 2250.0 - $A[$izi, $iyi, $ix+2] * 2250.0 +
+                $A[$izi, $iyi, $ix+1] * 125.0 - $A[$izi, $iyi, $ix+4] * 125.0 +
+                $A[$izi, $iyi, $ix+5] * 9.0 - $A[$izi, $iyi, $ix] * 9.0
             ),
         )
     end
-elseif (_fd.order == 8)
+elseif (_fd_order == 8)
     macro within(macroname::String, A::Symbol)
         if macroname == "@all"
             esc(:($iz <= size($A, 1) && $ix <= size($A, 2)))
@@ -213,60 +213,60 @@ elseif (_fd.order == 8)
     macro d_za(A::Symbol)
         esc(
             :(
-                $A[$iz+4,  $iy,  $ix] * 128625.0 - $A[$iz+3,  $iy,  $ix] * 128625.0 +
-                $A[$iz+2,  $iy,  $ix] * 8575.0 - $A[$iz+5,  $iy,  $ix] * 8575.0 +
-                $A[$iz+6,  $iy,  $ix] * 1029.0 - $A[$iz+1,  $iy,  $ix] * 1029.0 +
-                $A[$iz,  $iy,  $ix] * 75.0 - $A[$iz+7,  $iy,  $ix] * 75.0
+                $A[$iz+4, $iy, $ix] * 128625.0 - $A[$iz+3, $iy, $ix] * 128625.0 +
+                $A[$iz+2, $iy, $ix] * 8575.0 - $A[$iz+5, $iy, $ix] * 8575.0 +
+                $A[$iz+6, $iy, $ix] * 1029.0 - $A[$iz+1, $iy, $ix] * 1029.0 +
+                $A[$iz, $iy, $ix] * 75.0 - $A[$iz+7, $iy, $ix] * 75.0
             ),
         )
     end
     macro d_ya(A::Symbol)
         esc(
             :(
-                $A[$iz,  $iy+4,  $ix] * 128625.0 - $A[$iz,  $iy+3,  $ix] * 128625.0 +
-                $A[$iz,  $iy+2,  $ix] * 8575.0 - $A[$iz,  $iy+5,  $ix] * 8575.0 +
-                $A[$iz,  $iy+6,  $ix] * 1029.0 - $A[$iz,  $iy+1,  $ix] * 1029.0 +
-                $A[$iz,  $iy,  $ix] * 75.0 - $A[$iz,  $iy+7,  $ix] * 75.0
+                $A[$iz, $iy+4, $ix] * 128625.0 - $A[$iz, $iy+3, $ix] * 128625.0 +
+                $A[$iz, $iy+2, $ix] * 8575.0 - $A[$iz, $iy+5, $ix] * 8575.0 +
+                $A[$iz, $iy+6, $ix] * 1029.0 - $A[$iz, $iy+1, $ix] * 1029.0 +
+                $A[$iz, $iy, $ix] * 75.0 - $A[$iz, $iy+7, $ix] * 75.0
             ),
         )
     end
     macro d_xa(A::Symbol)
         esc(
             :(
-                $A[$iz,  $iy,  $ix+4] * 128625.0 - $A[$iz,  $iy,  $ix+3] * 128625.0 +
-                $A[$iz,  $iy,  $ix+2] * 8575.0 - $A[$iz,  $iy,  $ix+5] * 8575.0 +
-                $A[$iz,  $iy,  $ix+6] * 1029.0 - $A[$iz,  $iy,  $ix+1] * 1029.0 +
-                $A[$iz,  $iy,  $ix] * 75.0 - $A[$iz,  $iy,  $ix+7] * 75.0
+                $A[$iz, $iy, $ix+4] * 128625.0 - $A[$iz, $iy, $ix+3] * 128625.0 +
+                $A[$iz, $iy, $ix+2] * 8575.0 - $A[$iz, $iy, $ix+5] * 8575.0 +
+                $A[$iz, $iy, $ix+6] * 1029.0 - $A[$iz, $iy, $ix+1] * 1029.0 +
+                $A[$iz, $iy, $ix] * 75.0 - $A[$iz, $iy, $ix+7] * 75.0
             ),
         )
     end
     macro d_zi(A::Symbol)
         esc(
             :(
-                $A[$iz+4,  $iyi,  $ixi] * 128625.0 - $A[$iz+3,  $iyi,  $ixi] * 128625.0 +
-                $A[$iz+2,  $iyi,  $ixi] * 8575.0 - $A[$iz+5,  $iyi,  $ixi] * 8575.0 +
-                $A[$iz+6,  $iyi,  $ixi] * 1029.0 - $A[$iz+1,  $iyi,  $ixi] * 1029.0 +
-                $A[$iz,  $iyi,  $ixi] * 75.0 - $A[$iz+7,  $iyi,  $ixi] * 75.0
+                $A[$iz+4, $iyi, $ixi] * 128625.0 - $A[$iz+3, $iyi, $ixi] * 128625.0 +
+                $A[$iz+2, $iyi, $ixi] * 8575.0 - $A[$iz+5, $iyi, $ixi] * 8575.0 +
+                $A[$iz+6, $iyi, $ixi] * 1029.0 - $A[$iz+1, $iyi, $ixi] * 1029.0 +
+                $A[$iz, $iyi, $ixi] * 75.0 - $A[$iz+7, $iyi, $ixi] * 75.0
             ),
         )
     end
     macro d_yi(A::Symbol)
         esc(
             :(
-                $A[$izi,  $iy+4,  $ixi] * 128625.0 - $A[$izi,  $iy+3,  $ixi] * 128625.0 +
-                $A[$izi,  $iy+2,  $ixi] * 8575.0 - $A[$izi,  $iy+5,  $ixi] * 8575.0 +
-                $A[$izi,  $iy+6,  $ixi] * 1029.0 - $A[$izi,  $iy+1,  $ixi] * 1029.0 +
-                $A[$izi,  $iy,  $ixi] * 75.0 - $A[$izi,  $iy+7,  $ixi] * 75.0
+                $A[$izi, $iy+4, $ixi] * 128625.0 - $A[$izi, $iy+3, $ixi] * 128625.0 +
+                $A[$izi, $iy+2, $ixi] * 8575.0 - $A[$izi, $iy+5, $ixi] * 8575.0 +
+                $A[$izi, $iy+6, $ixi] * 1029.0 - $A[$izi, $iy+1, $ixi] * 1029.0 +
+                $A[$izi, $iy, $ixi] * 75.0 - $A[$izi, $iy+7, $ixi] * 75.0
             ),
         )
     end
     macro d_xi(A::Symbol)
         esc(
             :(
-                $A[$izi,  $iyi,  $ix+4] * 128625.0 - $A[$izi,  $iyi,  $ix+3] * 128625.0 +
-                $A[$izi,  $iyi,  $ix+2] * 8575.0 - $A[$izi,  $iyi,  $ix+5] * 8575.0 +
-                $A[$izi,  $iyi,  $ix+6] * 1029.0 - $A[$izi,  $iyi,  $ix+1] * 1029.0 +
-                $A[$izi,  $iyi,  $ix] * 75.0 - $A[$izi,  $iyi,  $ix+7] * 75.0
+                $A[$izi, $iyi, $ix+4] * 128625.0 - $A[$izi, $iyi, $ix+3] * 128625.0 +
+                $A[$izi, $iyi, $ix+2] * 8575.0 - $A[$izi, $iyi, $ix+5] * 8575.0 +
+                $A[$izi, $iyi, $ix+6] * 1029.0 - $A[$izi, $iyi, $ix+1] * 1029.0 +
+                $A[$izi, $iyi, $ix] * 75.0 - $A[$izi, $iyi, $ix+7] * 75.0
             ),
         )
     end

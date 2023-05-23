@@ -1,8 +1,8 @@
 ```@meta
-EditURL = "<unknown>/test/fdtd/doc.jl"
+EditURL = "<unknown>/doc.jl"
 ```
 
-This page was generated on 2021-11-29
+This page was generated on 2022-07-31
 
 ````@example doc
 using BenchmarkTools
@@ -10,14 +10,13 @@ using GeoPhyInv
 using Test
 ````
 
-# Intro
+## Methods
 
 ```@docs
 SeisForwExpt
 Base.getindex(::GeoPhyInv.PFdtd, ::Symbol, ::Int)
 ```
 
-# Methods
 ```@docs
 update!(::GeoPhyInv.PFdtd)
 update!(::GeoPhyInv.PFdtd, ::Medium)

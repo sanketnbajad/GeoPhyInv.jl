@@ -1,8 +1,8 @@
 ```@meta
-EditURL = "<unknown>/test/data/doc.jl"
+EditURL = "<unknown>/../data/doc.jl"
 ```
 
-This page was generated on 2021-11-29
+This page was generated on 2022-07-31
 
 ````@example doc
 using GeoPhyInv
